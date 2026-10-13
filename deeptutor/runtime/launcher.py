@@ -69,6 +69,53 @@ def _log(message: str) -> None:
     print(message, flush=True)
 
 
+def _preload_ollama() -> None:
+    """Best-effort ollama preload: start the daemon and warm installed models."""
+    ollama_host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+    base = ollama_host.rstrip("/")
+
+    # 1. Ensure ollama is reachable; try to start it if not.
+    try:
+        with urlrequest.urlopen(f"{base}/api/tags", timeout=2) as resp:
+            if resp.status != 200:
+                return
+    except (OSError, urlerror.URLError):
+        try:
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except Exception:
+            return
+        time.sleep(3)
+
+    # 2. Get installed models.
+    models: list[str] = []
+    try:
+        with urlrequest.urlopen(f"{base}/api/tags", timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            models = [m.get("name", "") for m in data.get("models", []) if m.get("name")]
+    except Exception:
+        return
+
+    if not models:
+        return
+
+    # 3. Warm each model with an empty generate request.
+    for model in models:
+        try:
+            payload = json.dumps({"model": model, "prompt": "", "stream": False}).encode()
+            req = urlrequest.Request(
+                f"{base}/api/generate", data=payload, method="POST"
+            )
+            with urlrequest.urlopen(req, timeout=120) as resp:
+                _ = resp.read()
+        except Exception:
+            pass
+
+
 def _reset_runtime_singletons() -> None:
     """Make a just-selected DEEPTUTOR_HOME visible to path/config singletons."""
     try:
