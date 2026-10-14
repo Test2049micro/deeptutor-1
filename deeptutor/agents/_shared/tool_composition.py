@@ -55,6 +55,20 @@ _CONDITIONAL_MOUNT_FLAGS: dict[str, str] = {
     "code_execution": "has_code",
 }
 
+# Built-ins that survive an exclusive knowledge capability when other KBs are
+# co-selected: retrieval over them, and enumeration of what they hold.
+_KB_COEXISTING_TOOLS: tuple[str, ...] = ("rag",)
+
+# The workspace is the user's shared content surface, not a capability or an
+# optional enhancement.  These tools therefore survive exclusive capability
+# surfaces and per-partner built-in filters.
+WORKSPACE_BASELINE_TOOLS: tuple[str, ...] = (
+    "workspace_list",
+    "workspace_read",
+    "workspace_search",
+    "workspace_present",
+)
+
 
 def default_optional_tools(excluded: Iterable[str] = ()) -> list[str]:
     """Return the user-toggleable tool list (chat's default set).
@@ -164,7 +178,16 @@ def compose_enabled_tools(
             if mount_flags.has_kb and (builtin_whitelist is None or "rag" in builtin_whitelist)
             else []
         )
-        return _finalize([*owned, *extra, "ask_user"], forced, suppressed)
+        # Workspace tools and ``load_tools`` survive an exclusive surface: the
+        # workspace is the user's shared content layer (not capability-owned),
+        # and ``load_tools`` is the progressive-discovery entry-point the model
+        # needs to reach deferred schemas without hard-coding them up-front.
+        infrastructure = [
+            *WORKSPACE_BASELINE_TOOLS,
+            "load_tools",
+            "ask_user",
+        ]
+        return _finalize([*owned, *extra, *infrastructure], forced, suppressed)
 
     def _builtin_allowed(name: str) -> bool:
         return builtin_whitelist is None or name in builtin_whitelist
