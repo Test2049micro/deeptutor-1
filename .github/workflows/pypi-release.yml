@@ -19,7 +19,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: pypi-release-${{ github.event.release.tag_name }}
@@ -27,6 +26,9 @@ concurrency:
 
 jobs:
   build-and-publish:
+    permissions:
+      contents: read
+      id-token: write
     name: Build and Publish PyPI Package
     runs-on: ubuntu-latest
     environment:
@@ -35,17 +37,20 @@ jobs:
 
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
       - name: Verify release tag is on main
         shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           git fetch origin main:refs/remotes/origin/main --no-tags
-          tag="${{ github.event.release.tag_name }}"
+          tag="$RELEASE_TAG"
           tag_commit="$(git rev-list -n 1 "$tag")"
           if ! git merge-base --is-ancestor "$tag_commit" origin/main; then
             echo "Release tag $tag ($tag_commit) is not on origin/main; refusing to publish to PyPI." >&2
@@ -53,16 +58,14 @@ jobs:
           fi
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
 
       - name: Install build tools
         run: |
@@ -128,11 +131,14 @@ jobs:
           (cd /tmp && python -m build --wheel --outdir "$GITHUB_WORKSPACE/dist/deeptutor" "$GITHUB_WORKSPACE")
 
       - name: Verify package metadata
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
         run: |
           python -m twine check dist/deeptutor/*
           python - <<'PY'
+          import os
           from pathlib import Path
-          expected = "${{ steps.version.outputs.version }}"
+          expected = os.environ["EXPECTED_VERSION"]
           files = {
               "deeptutor": sorted(path.name for path in Path("dist/deeptutor").glob("*")),
           }
@@ -148,7 +154,7 @@ jobs:
           PY
 
       - name: Publish deeptutor to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist/deeptutor/
           print-hash: true
