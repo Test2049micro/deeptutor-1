@@ -481,3 +481,28 @@ skips = [
   "B603",
   "B202",
 ]
+
+# Keep optional dependency resolution above known security advisory floors.
+# GraphRAG currently pins LiteLLM 1.92.0; its proxy advisory requires an upstream-compatible upgrade.
+[tool.uv]
+constraint-dependencies = [
+  "aiohttp>=3.14.4",
+  "banks>=2.5.1",
+  "cryptography>=50.0.0",
+  "docling>=2.132.0",
+  "docling-slim>=2.132.0",
+  "gradio>=6.16.0",
+  "h2>=4.4.1",
+  "lightrag-hku>=1.5.5",
+  "mcp>=1.30.0",
+  "multidict>=6.9.1",
+  "nltk>=3.10.3",
+  "pyarrow>=23.0.1",
+  "pyjwt>=2.15.0",
+  "pypdf>=6.19.0",
+  "starlette>=1.3.1",
+  "tinytag>=2.3.0",
+  "transformers>=5.10.0",
+  "urllib3>=2.8.0",
+  "virtualenv>=21.7.13",
+]
