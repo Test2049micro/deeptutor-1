@@ -23,7 +23,7 @@ perplexityai>=0.1.0
 oauth-cli-kit>=0.1.1; python_version >= "3.11"
 
 # --- HTTP clients ---
-aiohttp>=3.9.4
+aiohttp>=3.14.4
 edge-tts>=7.0,<8
 httpx>=0.27.0
 requests>=2.32.2
@@ -53,7 +53,7 @@ python-docx>=1.1.0
 legacy-doc>=0.2.1,<1.0.0
 openpyxl>=3.1.0
 python-pptx>=1.0.0
-pypdf>=4.0.0
+pypdf>=6.19.0
 pdfplumber>=0.11.0,<0.11.8  # 0.11.8+ pins pdfminer.six==20251230, conflicts with mineru (via raganything)
 reportlab>=4.0.0
 defusedxml>=0.7.1

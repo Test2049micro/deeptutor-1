@@ -219,7 +219,7 @@ def get_user_info(username: str) -> dict | None:
 
 def create_token(username: str, role: str = "user", user_id: str | None = None) -> str:
     """Create a signed JWT for the given username and role."""
-    from jose import jwt
+    import jwt
 
     if not user_id:
         record = _load_users().get(username) or {}
@@ -261,13 +261,20 @@ def decode_token(token: str) -> TokenPayload | None:
         )
 
     # Standard JWT + bcrypt mode
-    from jose import JWTError, jwt
+    import jwt
+    from jwt import PyJWTError
 
     if not AUTH_SECRET:
         return None
 
     try:
-        payload = jwt.decode(token, AUTH_SECRET, algorithms=[_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            AUTH_SECRET,
+            algorithms=[_ALGORITHM],
+            # A signed session without a lifetime must never be accepted.
+            options={"require": ["exp", "sub"]},
+        )
         username = payload.get("sub")
         if not username:
             return None
@@ -276,7 +283,7 @@ def decode_token(token: str) -> TokenPayload | None:
             record = _load_users().get(str(username)) or {}
             user_id = str(record.get("id") or "")
         return TokenPayload(username=username, role=payload.get("role", "user"), user_id=user_id)
-    except JWTError:
+    except PyJWTError:
         return None
 
 
